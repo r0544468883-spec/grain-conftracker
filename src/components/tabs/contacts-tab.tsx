@@ -1,0 +1,443 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  Flame,
+  Thermometer,
+  Snowflake,
+  Building2,
+  ChevronRight,
+  Download,
+  ArrowLeft,
+  Brain,
+  Sparkles,
+  Settings,
+  Loader2,
+  AlertCircle,
+  Search,
+  Upload,
+  Check,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Contact = {
+  id: string;
+  name: string;
+  currentCompany: string | null;
+  currentRole: string | null;
+  email: string | null;
+  phone: string | null;
+  lifecycleStage: string;
+  interactionCount: number;
+  lastTemperature: string;
+  lastConference: string | null;
+};
+
+type ContactDetail = Contact & {
+  previousCompanies: string[];
+  interactions: {
+    id: string;
+    notes: string | null;
+    temperature: string;
+    capturedRoleAtTime: string | null;
+    capturedCompanyAtTime: string | null;
+    createdAt: string;
+    conferenceName: string;
+    conferenceLocation: string;
+    conferenceVertical: string;
+  }[];
+};
+
+const tempIcon: Record<string, React.ReactNode> = {
+  HOT: <Flame className="w-4 h-4 text-red-500" />,
+  WARM: <Thermometer className="w-4 h-4 text-orange-400" />,
+  COLD: <Snowflake className="w-4 h-4 text-blue-400" />,
+};
+
+const tempDot: Record<string, string> = {
+  HOT: "bg-red-500",
+  WARM: "bg-orange-400",
+  COLD: "bg-blue-400",
+};
+
+export function ContactsTab() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<ContactDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTemp, setFilterTemp] = useState<string>("");
+  const [filterStage, setFilterStage] = useState<string>("");
+
+  // HubSpot push state
+  const [hubspotPushing, setHubspotPushing] = useState(false);
+  const [hubspotResult, setHubspotResult] = useState<{ created: number; updated: number; errors: number } | null>(null);
+  const [showHubspotSettings, setShowHubspotSettings] = useState(false);
+  const [hubspotKey, setHubspotKey] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("grain_hubspot_key") || "";
+    return "";
+  });
+
+  useEffect(() => {
+    fetch("/api/contacts")
+      .then((r) => r.json())
+      .then((data) => { setContacts(data); setLoading(false); });
+  }, []);
+
+  // Filtered contacts
+  const filtered = contacts.filter((c) => {
+    if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) && !c.currentCompany?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterTemp && c.lastTemperature !== filterTemp) return false;
+    if (filterStage && c.lifecycleStage !== filterStage) return false;
+    return true;
+  });
+
+  function openContact(id: string) {
+    setSelectedId(id);
+    setDetailLoading(true);
+    fetch(`/api/contacts/${id}`)
+      .then((r) => r.json())
+      .then((data) => { setDetail(data); setDetailLoading(false); });
+  }
+
+  function goBack() {
+    setSelectedId(null);
+    setDetail(null);
+    fetch("/api/contacts").then((r) => r.json()).then(setContacts);
+  }
+
+  function exportCsv() {
+    const headers = ["First Name", "Last Name", "Email", "Phone Number", "Company Name", "Job Title", "Lifecycle Stage"];
+    const rows = filtered.map((c) => {
+      const parts = c.name.split(" ");
+      return [parts[0] || "", parts.slice(1).join(" ") || "", c.email || "", c.phone || "", c.currentCompany || "", c.currentRole || "", c.lifecycleStage.toLowerCase()];
+    });
+    const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `grain-hubspot-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function pushToHubspot() {
+    const key = localStorage.getItem("grain_hubspot_key");
+    if (!key) { setShowHubspotSettings(true); return; }
+
+    setHubspotPushing(true);
+    setHubspotResult(null);
+    try {
+      const res = await fetch("/api/hubspot/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contacts: filtered, hubspotApiKey: key }),
+      });
+      const data = await res.json();
+      if (data.summary) setHubspotResult(data.summary);
+      else setHubspotResult({ created: 0, updated: 0, errors: filtered.length });
+    } catch {
+      setHubspotResult({ created: 0, updated: 0, errors: filtered.length });
+    } finally {
+      setHubspotPushing(false);
+    }
+  }
+
+  // Detail view
+  if (selectedId) {
+    if (detailLoading || !detail) {
+      return <div className="flex items-center justify-center h-64"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+    }
+    return <ContactProfile detail={detail} goBack={goBack} />;
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><p className="text-sm text-muted-foreground">Loading...</p></div>;
+  }
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold" data-tour="contacts-header">Contacts ({filtered.length})</h2>
+        <div className="flex items-center gap-1.5" data-tour="hubspot-btns">
+          <button onClick={exportCsv} className="flex items-center gap-1 text-[11px] text-grain-blue py-1.5 px-2 rounded-lg border border-grain-blue/20">
+            <Download className="w-3 h-3" /> CSV
+          </button>
+          <button onClick={pushToHubspot} disabled={hubspotPushing} className="flex items-center gap-1 text-[11px] text-white py-1.5 px-2 rounded-lg bg-[#ff7a59]">
+            {hubspotPushing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} HubSpot
+          </button>
+        </div>
+      </div>
+
+      {/* HubSpot settings */}
+      {showHubspotSettings && (
+        <div className="rounded-lg border border-[#ff7a59]/20 bg-[#ff7a59]/5 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">HubSpot API Key</span>
+            <button onClick={() => setShowHubspotSettings(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+          </div>
+          <input
+            type="password"
+            placeholder="pat-na1-..."
+            value={hubspotKey}
+            onChange={(e) => setHubspotKey(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground">Get your key from HubSpot Settings → Private Apps</p>
+          <button
+            onClick={() => { localStorage.setItem("grain_hubspot_key", hubspotKey); setShowHubspotSettings(false); }}
+            className="w-full py-2 rounded-lg bg-[#ff7a59] text-white text-xs font-medium"
+          >
+            Save & Connect
+          </button>
+        </div>
+      )}
+
+      {/* HubSpot push result */}
+      {hubspotResult && (
+        <div className="rounded-lg border border-border p-2.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-green-500 flex items-center gap-1"><Check className="w-3 h-3" />{hubspotResult.created} created</span>
+            <span className="text-grain-blue flex items-center gap-1">{hubspotResult.updated} updated</span>
+            {hubspotResult.errors > 0 && <span className="text-red-500">{hubspotResult.errors} errors</span>}
+          </div>
+          <button onClick={() => setHubspotResult(null)} className="text-muted-foreground"><X className="w-3 h-3" /></button>
+        </div>
+      )}
+
+      {/* Search + filters */}
+      <div className="space-y-2" data-tour="contacts-filters">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search name or company..."
+            className="w-full pl-10 pr-3 py-2 rounded-lg border border-border bg-background text-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={filterTemp}
+            onChange={(e) => setFilterTemp(e.target.value)}
+            className="flex-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs"
+          >
+            <option value="">All temps</option>
+            <option value="HOT">Hot</option>
+            <option value="WARM">Warm</option>
+            <option value="COLD">Cold</option>
+          </select>
+          <select
+            value={filterStage}
+            onChange={(e) => setFilterStage(e.target.value)}
+            className="flex-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs"
+          >
+            <option value="">All stages</option>
+            <option value="TARGET">Target</option>
+            <option value="LEAD">Lead</option>
+            <option value="PROSPECT">Prospect</option>
+            <option value="CUSTOMER">Customer</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Contact list */}
+      {filtered.map((c) => (
+        <button
+          key={c.id}
+          onClick={() => openContact(c.id)}
+          className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-border bg-background"
+        >
+          <div className="w-10 h-10 rounded-full bg-grain-navy/10 flex items-center justify-center shrink-0">
+            <span className="text-grain-navy font-semibold text-sm">
+              {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{c.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {c.currentRole ? `${c.currentRole} @ ` : ""}{c.currentCompany || "No company"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {tempIcon[c.lastTemperature]}
+            <span className="text-xs text-muted-foreground">{c.interactionCount}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </button>
+      ))}
+
+      {filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          {contacts.length === 0 ? "No contacts yet. Capture some leads!" : "No contacts match your filters."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () => void }) {
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("grain_ai_key") || "");
+  const [apiProvider, setApiProvider] = useState(() => localStorage.getItem("grain_ai_provider") || "openai");
+
+  function saveApiSettings() {
+    localStorage.setItem("grain_ai_key", apiKey);
+    localStorage.setItem("grain_ai_provider", apiProvider);
+    setShowSettings(false);
+  }
+
+  async function runAi() {
+    const key = localStorage.getItem("grain_ai_key");
+    const provider = localStorage.getItem("grain_ai_provider") || "openai";
+    if (!key) { setAiError("Set your API key first (tap gear icon)"); return; }
+    if (detail.interactions.length === 0) { setAiError("No interactions to analyze"); return; }
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiSummary(null);
+
+    try {
+      const res = await fetch("/api/ai-summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contactName: detail.name,
+          interactions: detail.interactions,
+          provider,
+          apiKey: key,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAiSummary(data.summary);
+    } catch (e: any) {
+      setAiError(e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function linkedInSearchUrl() {
+    const q = encodeURIComponent(`${detail.name} ${detail.currentCompany || ""}`.trim());
+    return `https://www.linkedin.com/search/results/people/?keywords=${q}`;
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground">
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
+
+      {/* Contact header */}
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-grain-navy/10 flex items-center justify-center">
+          <span className="text-grain-navy font-bold">
+            {detail.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          </span>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold">{detail.name}</h2>
+          <p className="text-sm text-muted-foreground">
+            {detail.currentRole} {detail.currentCompany ? `@ ${detail.currentCompany}` : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Info chips */}
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="px-2 py-1 rounded-full bg-grain-blue/10 text-grain-blue font-medium">{detail.lifecycleStage}</span>
+        <span className="px-2 py-1 rounded-full bg-muted text-muted-foreground">{detail.interactionCount} conferences</span>
+        {detail.email && <span className="px-2 py-1 rounded-full bg-muted text-muted-foreground">{detail.email}</span>}
+        {detail.phone && <span className="px-2 py-1 rounded-full bg-muted text-muted-foreground">{detail.phone}</span>}
+      </div>
+
+      {/* LinkedIn connect */}
+      <a
+        href={linkedInSearchUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#0A66C2] text-white font-medium text-sm"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        Find on LinkedIn
+      </a>
+
+      {/* AI Section */}
+      <div className="rounded-xl border border-grain-blue/20 bg-grain-blue/5 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain className="w-4 h-4 text-grain-blue" />
+            <span className="text-sm font-medium">AI Intelligence</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowSettings(!showSettings)} className="p-1.5 rounded-lg hover:bg-muted">
+              <Settings className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button onClick={runAi} disabled={aiLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-grain-blue text-white text-xs font-medium">
+              {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              Analyze
+            </button>
+          </div>
+        </div>
+
+        {showSettings && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <div className="flex gap-2">
+              <button onClick={() => setApiProvider("openai")} className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border", apiProvider === "openai" ? "border-grain-blue bg-grain-blue/10 text-grain-blue" : "border-border text-muted-foreground")}>OpenAI</button>
+              <button onClick={() => setApiProvider("anthropic")} className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border", apiProvider === "anthropic" ? "border-grain-blue bg-grain-blue/10 text-grain-blue" : "border-border text-muted-foreground")}>Anthropic</button>
+            </div>
+            <input type="password" placeholder={apiProvider === "openai" ? "sk-..." : "sk-ant-..."} value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+            <p className="text-[10px] text-muted-foreground">Key is sent securely through our server — never stored on the server.</p>
+            <button onClick={saveApiSettings} className="w-full py-2 rounded-lg bg-grain-navy text-white text-xs font-medium">Save</button>
+          </div>
+        )}
+
+        {aiError && (
+          <div className="flex items-start gap-2 text-xs text-red-500 bg-red-500/10 rounded-lg p-2">
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />{aiError}
+          </div>
+        )}
+
+        {aiSummary && <div className="text-sm leading-relaxed whitespace-pre-line">{aiSummary}</div>}
+
+        {!aiSummary && !aiError && (
+          <p className="text-xs text-muted-foreground">Tap Analyze for AI-powered relationship insights</p>
+        )}
+      </div>
+
+      {/* Timeline */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3">Timeline</h3>
+        <div className="space-y-3">
+          {detail.interactions.map((i) => (
+            <div key={i.id} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className={cn("w-3 h-3 rounded-full shrink-0 mt-1", tempDot[i.temperature] || "bg-gray-400")} />
+                <div className="w-px flex-1 bg-border" />
+              </div>
+              <div className="pb-4 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-sm">{i.conferenceName}</p>
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(i.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                </div>
+                {i.capturedCompanyAtTime && i.capturedCompanyAtTime !== detail.currentCompany && (
+                  <p className="text-[11px] text-orange-400 mt-0.5">Was at: {i.capturedCompanyAtTime} ({i.capturedRoleAtTime})</p>
+                )}
+                {i.notes && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{i.notes}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

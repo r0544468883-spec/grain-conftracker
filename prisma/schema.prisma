@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Conference {
+  id            String        @id @default(cuid())
+  name          String
+  date          DateTime
+  endDate       DateTime?
+  location      String
+  city          String?
+  country       String?
+  vertical      String        // FINTECH, PAYMENTS, TREASURY, TRAVEL, SAAS
+  estimatedSize Int
+  icpScore      Int           @default(0)
+  website       String?
+  description   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  interactions  Interaction[]
+}
+
+model Contact {
+  id                String        @id @default(cuid())
+  name              String
+  currentCompany    String?
+  currentRole       String?
+  email             String?
+  phone             String?
+  linkedinUrl       String?
+  lifecycleStage    String        @default("TARGET") // TARGET, LEAD, PROSPECT, CUSTOMER
+  previousCompanies String?       // JSON string for tracking company history
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  interactions      Interaction[]
+}
+
+model Interaction {
+  id                    String      @id @default(cuid())
+  notes                 String?
+  temperature           String      @default("WARM") // COLD, WARM, HOT
+  capturedRoleAtTime    String?
+  capturedCompanyAtTime String?
+  source                String?     // manual, ocr, offline-sync
+  createdAt             DateTime    @default(now())
+
+  contact               Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId             String
+  conference            Conference  @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conferenceId          String
+
+  @@index([contactId])
+  @@index([conferenceId])
+}
