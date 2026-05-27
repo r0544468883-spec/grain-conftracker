@@ -14,6 +14,7 @@ import {
   Zap,
   ChevronDown,
   ExternalLink,
+  Brain,
 } from "lucide-react";
 import { searchContacts, getConferences, submitLead } from "@/app/capture/actions";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,15 @@ export function CaptureTab() {
   const [quickMode, setQuickMode] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [aiEnrichment, setAiEnrichment] = useState<{
+    matchFound: boolean;
+    matchedContactId?: string;
+    matchConfidence?: string;
+    matchReason?: string;
+    isJobChange?: boolean;
+    jobChangeNote?: string;
+    enrichmentNote?: string;
+  } | null>(null);
   const [conferences, setConferences] = useState<{ id: string; name: string }[]>([]);
   const [conferenceId, setConferenceId] = useState(() => {
     if (typeof window !== "undefined") return localStorage.getItem("grain_last_conference") || "";
@@ -113,6 +123,39 @@ export function CaptureTab() {
         .filter((l) => !l.includes("@") && !/(\+?\d[\d\s().-]{6,}\d)/.test(l))
         .sort((a, b) => b.length - a.length)[0];
       if (companyLine && !company) setCompany(companyLine.replace(/[^A-Za-z0-9&().,' -]/g, "").trim());
+
+      // AI Enrichment — fuzzy match + job change detection
+      const aiKey = localStorage.getItem("grain_ai_key");
+      const aiProvider = localStorage.getItem("grain_ai_provider") || "openai";
+      if (aiKey && data.text.trim().length > 10) {
+        try {
+          const enrichRes = await fetch("/api/ai-enrich", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ocrText: data.text, provider: aiProvider, apiKey: aiKey }),
+          });
+          const enrichData = await enrichRes.json();
+          if (!enrichData.error) {
+            setAiEnrichment(enrichData);
+            // If AI extracted better data, use it
+            if (enrichData.extracted) {
+              if (enrichData.extracted.name && !name) setName(enrichData.extracted.name);
+              if (enrichData.extracted.company && !company) setCompany(enrichData.extracted.company);
+              if (enrichData.extracted.role) setRole(enrichData.extracted.role);
+              if (enrichData.extracted.email && !email) setEmail(enrichData.extracted.email);
+              if (enrichData.extracted.phone && !phone) setPhone(enrichData.extracted.phone);
+            }
+            // If match found, auto-select the contact
+            if (enrichData.matchFound && enrichData.matchedContactId) {
+              const results = await searchContacts(enrichData.extracted?.name || "");
+              const matched = results.find((r: SearchResult) => r.id === enrichData.matchedContactId);
+              if (matched) pickContact(matched);
+            }
+          }
+        } catch {
+          // AI enrichment is optional — don't block on failure
+        }
+      }
     } catch (err) {
       setOcrError("Couldn't read the card. Try a clearer photo.");
       setTimeout(() => setOcrError(null), 5000);
@@ -131,6 +174,7 @@ export function CaptureTab() {
     setTemperature("WARM");
     setSelectedContact(null);
     setSearchResults([]);
+    setAiEnrichment(null);
   }
 
   function handleConferenceChange(val: string) {
@@ -312,6 +356,32 @@ export function CaptureTab() {
           <button onClick={clearForm} className="text-xs text-grain-blue">
             Clear
           </button>
+        </div>
+      )}
+
+      {/* AI Enrichment result */}
+      {aiEnrichment && !selectedContact && (
+        <div className={cn(
+          "rounded-lg border p-2.5 text-xs space-y-1",
+          aiEnrichment.matchFound
+            ? "border-grain-blue/20 bg-grain-blue/5"
+            : aiEnrichment.isJobChange
+              ? "border-orange-400/20 bg-orange-400/5"
+              : "border-green-500/20 bg-green-500/5"
+        )}>
+          <div className="flex items-center gap-1.5">
+            <Brain className="w-3.5 h-3.5 text-grain-blue" />
+            <span className="font-medium">AI Analysis</span>
+          </div>
+          {aiEnrichment.matchFound && (
+            <p className="text-grain-blue">Match found ({aiEnrichment.matchConfidence}): {aiEnrichment.matchReason}</p>
+          )}
+          {aiEnrichment.isJobChange && (
+            <p className="text-orange-400">Job change detected: {aiEnrichment.jobChangeNote}</p>
+          )}
+          {aiEnrichment.enrichmentNote && (
+            <p className="text-muted-foreground">{aiEnrichment.enrichmentNote}</p>
+          )}
         </div>
       )}
 

@@ -46,6 +46,7 @@ model Conference {
   updatedAt     DateTime      @updatedAt
 
   interactions  Interaction[]
+  meetings      Meeting[]
 }
 
 model Contact {
@@ -58,14 +59,36 @@ model Contact {
   linkedinUrl       String?
   lifecycleStage    LifecycleStage  @default(TARGET)
   previousCompanies Json            @default("[]")
+  aiLeadScore       Int?
+  aiScoreReason     String?
   notes             String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   interactions      Interaction[]
+  meetings          Meeting[]
 
   @@index([email])
   @@index([currentCompany])
+}
+
+model Meeting {
+  id            String      @id @default(cuid())
+  title         String
+  scheduledAt   DateTime
+  location      String?
+  notes         String?
+  aiBriefing    String?
+  createdAt     DateTime    @default(now())
+
+  contact       Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId     String
+  conference    Conference  @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conferenceId  String
+
+  @@index([contactId])
+  @@index([conferenceId])
+  @@index([scheduledAt])
 }
 
 model Interaction {

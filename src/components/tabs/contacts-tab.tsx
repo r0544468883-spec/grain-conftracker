@@ -282,6 +282,15 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("grain_ai_key") || "");
   const [apiProvider, setApiProvider] = useState(() => localStorage.getItem("grain_ai_provider") || "openai");
 
+  // Lead Score
+  const [leadScore, setLeadScore] = useState<{ score: number; reason: string; priority: string } | null>(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+
+  // Follow-Up Email
+  const [followUpEmail, setFollowUpEmail] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
+
   function saveApiSettings() {
     localStorage.setItem("grain_ai_key", apiKey);
     localStorage.setItem("grain_ai_provider", apiProvider);
@@ -316,6 +325,57 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
       setAiError(e.message);
     } finally {
       setAiLoading(false);
+    }
+  }
+
+  async function runLeadScore() {
+    const key = localStorage.getItem("grain_ai_key");
+    const prov = localStorage.getItem("grain_ai_provider") || "openai";
+    if (!key) { setAiError("Set your API key first"); return; }
+    setScoreLoading(true);
+    try {
+      const res = await fetch("/api/ai-lead-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId: detail.id, provider: prov, apiKey: key }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setLeadScore(data);
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : "Score failed");
+    } finally {
+      setScoreLoading(false);
+    }
+  }
+
+  async function runFollowUpEmail() {
+    const key = localStorage.getItem("grain_ai_key");
+    const prov = localStorage.getItem("grain_ai_provider") || "openai";
+    if (!key) { setAiError("Set your API key first"); return; }
+    setEmailLoading(true);
+    setFollowUpEmail(null);
+    try {
+      const res = await fetch("/api/ai-follow-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId: detail.id, provider: prov, apiKey: key }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setFollowUpEmail(data.email);
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : "Email draft failed");
+    } finally {
+      setEmailLoading(false);
+    }
+  }
+
+  function copyEmail() {
+    if (followUpEmail) {
+      navigator.clipboard.writeText(followUpEmail);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
     }
   }
 
@@ -401,6 +461,68 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
           <p className="text-xs text-muted-foreground">Tap Analyze for AI-powered relationship insights</p>
         )}
       </div>
+
+      {/* AI Lead Score */}
+      <div className="flex gap-2">
+        <button
+          onClick={runLeadScore}
+          disabled={scoreLoading}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-grain-gold/20 bg-grain-gold/5 text-sm font-medium"
+        >
+          {scoreLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-grain-gold" />}
+          {scoreLoading ? "Scoring..." : "AI Lead Score"}
+        </button>
+        <button
+          onClick={runFollowUpEmail}
+          disabled={emailLoading}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-500/20 bg-green-500/5 text-sm font-medium"
+        >
+          {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-green-500" />}
+          {emailLoading ? "Drafting..." : "Draft Follow-Up"}
+        </button>
+      </div>
+
+      {/* Lead Score Result */}
+      {leadScore && (
+        <div className="rounded-xl border border-grain-gold/20 bg-grain-gold/5 p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium">Lead Score</span>
+            <span className={cn(
+              "text-xl font-bold",
+              leadScore.score >= 70 ? "text-green-500" : leadScore.score >= 40 ? "text-grain-gold" : "text-muted-foreground"
+            )}>
+              {leadScore.score}/100
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">{leadScore.reason}</p>
+          <span className={cn(
+            "inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full",
+            leadScore.priority === "HIGH" ? "bg-green-500/10 text-green-500" :
+            leadScore.priority === "MEDIUM" ? "bg-grain-gold/10 text-grain-gold" :
+            "bg-muted text-muted-foreground"
+          )}>
+            {leadScore.priority} PRIORITY
+          </span>
+        </div>
+      )}
+
+      {/* Follow-Up Email Result */}
+      {followUpEmail && (
+        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Follow-Up Email Draft</span>
+            <button
+              onClick={copyEmail}
+              className="text-xs px-2 py-1 rounded-lg bg-green-500 text-white"
+            >
+              {emailCopied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed font-sans">
+            {followUpEmail}
+          </pre>
+        </div>
+      )}
 
       {/* Timeline */}
       <div>
