@@ -22,9 +22,9 @@ export async function searchContacts(query: string) {
   const contacts = await prisma.contact.findMany({
     where: {
       OR: [
-        { name: { contains: query } },
-        { currentCompany: { contains: query } },
-        { email: { contains: query } },
+        { name: { contains: query, mode: "insensitive" as const } },
+        { currentCompany: { contains: query, mode: "insensitive" as const } },
+        { email: { contains: query, mode: "insensitive" as const } },
       ],
     },
     take: 10,
