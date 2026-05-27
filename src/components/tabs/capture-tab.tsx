@@ -31,8 +31,12 @@ type SearchResult = {
 export function CaptureTab() {
   const [quickMode, setQuickMode] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
   const [conferences, setConferences] = useState<{ id: string; name: string }[]>([]);
-  const [conferenceId, setConferenceId] = useState("");
+  const [conferenceId, setConferenceId] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("grain_last_conference") || "";
+    return "";
+  });
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
@@ -50,7 +54,11 @@ export function CaptureTab() {
   const [status, setStatus] = useState<"idle" | "saved" | "offline">("idle");
   const [savedName, setSavedName] = useState("");
   const [savedCompany, setSavedCompany] = useState("");
+  const [savedContactId, setSavedContactId] = useState("");
+  const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
   const [pendingSync, setPendingSync] = useState(0);
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     getConferences().then((c) => {
@@ -115,7 +123,8 @@ export function CaptureTab() {
         .sort((a, b) => b.length - a.length)[0];
       if (companyLine && !company) setCompany(companyLine.replace(/[^A-Za-z0-9&().,' -]/g, "").trim());
     } catch (err) {
-      console.error("OCR error:", err);
+      setOcrError("Couldn't read the card. Try a clearer photo.");
+      setTimeout(() => setOcrError(null), 5000);
     } finally {
       setOcrLoading(false);
     }
@@ -133,9 +142,30 @@ export function CaptureTab() {
     setSearchResults([]);
   }
 
+  function handleConferenceChange(val: string) {
+    setConferenceId(val);
+    if (val) localStorage.setItem("grain_last_conference", val);
+  }
+
+  function validateFields(): boolean {
+    let valid = true;
+    setEmailError("");
+    setPhoneError("");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Invalid email format");
+      valid = false;
+    }
+    if (phone && !/^[+\d][\d\s().-]{5,}$/.test(phone)) {
+      setPhoneError("Invalid phone format");
+      valid = false;
+    }
+    return valid;
+  }
+
   function handleSubmit() {
-    if (honeypot) return; // Bot
+    if (honeypot) return;
     if (!name.trim() || !conferenceId) return;
+    if (!validateFields()) return;
 
     const payload = {
       name: name.trim(),
@@ -152,9 +182,10 @@ export function CaptureTab() {
 
     startTransition(async () => {
       try {
-        await submitLead(payload);
+        const result = await submitLead(payload);
         setSavedName(name.trim());
         setSavedCompany(company);
+        setSavedContactId(result.contactId);
         setStatus("saved");
       } catch {
         // Offline fallback
@@ -249,7 +280,7 @@ export function CaptureTab() {
         <select
           data-tour="conference-select"
           value={conferenceId}
-          onChange={(e) => setConferenceId(e.target.value)}
+          onChange={(e) => handleConferenceChange(e.target.value)}
           className="flex-1 bg-muted/50 text-sm rounded-lg px-3 py-2.5 border border-border"
         >
           <option value="">Select conference...</option>
@@ -305,6 +336,7 @@ export function CaptureTab() {
           value={name}
           onChange={(e) => { setName(e.target.value); setSelectedContact(null); }}
           placeholder="Name *"
+          aria-label="Contact name"
           className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-border bg-background text-sm"
           autoFocus
         />
@@ -353,21 +385,35 @@ export function CaptureTab() {
 
       {/* Email + Phone — hidden in quick mode */}
       {!selectedContact && !quickMode && (
-        <div className="flex gap-2">
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            type="email"
-            className="flex-1 px-3 py-2.5 rounded-lg border border-border bg-background text-sm"
-          />
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone"
-            type="tel"
-            className="flex-1 px-3 py-2.5 rounded-lg border border-border bg-background text-sm"
-          />
+        <div className="space-y-1">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="sr-only" htmlFor="cap-email">Email</label>
+              <input
+                id="cap-email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+                placeholder="Email"
+                type="email"
+                aria-label="Email address"
+                className={cn("w-full px-3 py-2.5 rounded-lg border bg-background text-sm", emailError ? "border-red-500" : "border-border")}
+              />
+              {emailError && <p className="text-[11px] text-red-500 mt-0.5">{emailError}</p>}
+            </div>
+            <div className="flex-1">
+              <label className="sr-only" htmlFor="cap-phone">Phone</label>
+              <input
+                id="cap-phone"
+                value={phone}
+                onChange={(e) => { setPhone(e.target.value); setPhoneError(""); }}
+                placeholder="Phone"
+                type="tel"
+                aria-label="Phone number"
+                className={cn("w-full px-3 py-2.5 rounded-lg border bg-background text-sm", phoneError ? "border-red-500" : "border-border")}
+              />
+              {phoneError && <p className="text-[11px] text-red-500 mt-0.5">{phoneError}</p>}
+            </div>
+          </div>
         </div>
       )}
 
@@ -410,6 +456,14 @@ export function CaptureTab() {
       <div className="hidden" aria-hidden="true">
         <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
       </div>
+
+      {/* OCR error banner */}
+      {ocrError && (
+        <div className="flex items-center gap-2 text-xs text-red-500 bg-red-500/10 rounded-lg p-2.5">
+          <Camera className="w-4 h-4 shrink-0" />
+          {ocrError}
+        </div>
+      )}
 
       {/* Scan Business Card — working OCR */}
       <label data-tour="ocr-scan" className={cn(

@@ -39,12 +39,12 @@ export function AppShell() {
           </div>
         </header>
 
-        {/* Content */}
+        {/* Content — tabs stay mounted to preserve form state */}
         <div className="flex-1 overflow-y-auto">
-          {activeTab === "capture" && <CaptureTab />}
-          {activeTab === "dashboard" && <DashboardTab />}
-          {activeTab === "contacts" && <ContactsTab />}
-          {activeTab === "planning" && <PlanningTab />}
+          <div className={activeTab === "capture" ? "" : "hidden"}><CaptureTab /></div>
+          <div className={activeTab === "dashboard" ? "" : "hidden"}><DashboardTab /></div>
+          <div className={activeTab === "contacts" ? "" : "hidden"}><ContactsTab /></div>
+          <div className={activeTab === "planning" ? "" : "hidden"}><PlanningTab /></div>
         </div>
 
         {/* Bottom tab bar */}

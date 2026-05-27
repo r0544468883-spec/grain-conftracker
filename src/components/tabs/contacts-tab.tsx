@@ -80,11 +80,18 @@ export function ContactsTab() {
     return "";
   });
 
-  useEffect(() => {
+  const [error, setError] = useState(false);
+
+  function loadContacts() {
+    setLoading(true);
+    setError(false);
     fetch("/api/contacts")
       .then((r) => r.json())
-      .then((data) => { setContacts(data); setLoading(false); });
-  }, []);
+      .then((data) => { setContacts(data); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }
+
+  useEffect(() => { loadContacts(); }, []);
 
   // Filtered contacts
   const filtered = contacts.filter((c) => {
@@ -99,13 +106,14 @@ export function ContactsTab() {
     setDetailLoading(true);
     fetch(`/api/contacts/${id}`)
       .then((r) => r.json())
-      .then((data) => { setDetail(data); setDetailLoading(false); });
+      .then((data) => { setDetail(data); setDetailLoading(false); })
+      .catch(() => { setDetailLoading(false); });
   }
 
   function goBack() {
     setSelectedId(null);
     setDetail(null);
-    fetch("/api/contacts").then((r) => r.json()).then(setContacts);
+    loadContacts();
   }
 
   function exportCsv() {
@@ -127,6 +135,9 @@ export function ContactsTab() {
   async function pushToHubspot() {
     const key = localStorage.getItem("grain_hubspot_key");
     if (!key) { setShowHubspotSettings(true); return; }
+
+    const confirmed = window.confirm(`Push ${filtered.length} contacts to HubSpot?`);
+    if (!confirmed) return;
 
     setHubspotPushing(true);
     setHubspotResult(null);
@@ -155,7 +166,22 @@ export function ContactsTab() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><p className="text-sm text-muted-foreground">Loading...</p></div>;
+    return (
+      <div className="p-4 space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-16 rounded-xl bg-muted/50 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm text-muted-foreground">Failed to load contacts</p>
+        <button onClick={loadContacts} className="px-4 py-2 rounded-lg bg-grain-blue text-white text-sm">Try Again</button>
+      </div>
+    );
   }
 
   return (

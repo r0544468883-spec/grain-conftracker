@@ -51,17 +51,36 @@ export function DashboardTab() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterVertical, setFilterVertical] = useState("");
   const [searchQ, setSearchQ] = useState("");
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  function loadConferences() {
+    setLoading(true);
+    setError(false);
     fetch("/api/conferences")
       .then((r) => r.json())
-      .then((data) => { setConferences(data); setLoading(false); });
-  }, []);
+      .then((data) => { setConferences(data); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }
+
+  useEffect(() => { loadConferences(); }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+      <div className="p-4 space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl bg-muted/50 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm text-muted-foreground">Failed to load conferences</p>
+        <button onClick={loadConferences} className="px-4 py-2 rounded-lg bg-grain-blue text-white text-sm">
+          Try Again
+        </button>
       </div>
     );
   }
@@ -125,12 +144,14 @@ export function DashboardTab() {
         <div className="flex border border-border rounded-lg overflow-hidden" data-tour="view-toggle">
           <button
             onClick={() => setView("list")}
+            aria-label="List view"
             className={cn("p-2", view === "list" ? "bg-grain-blue text-white" : "text-muted-foreground")}
           >
             <List className="w-4 h-4" />
           </button>
           <button
             onClick={() => setView("calendar")}
+            aria-label="Calendar view"
             className={cn("p-2", view === "calendar" ? "bg-grain-blue text-white" : "text-muted-foreground")}
           >
             <LayoutGrid className="w-4 h-4" />
