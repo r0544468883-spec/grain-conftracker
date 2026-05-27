@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Vertical, Temperature, LifecycleStage } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -21,7 +21,11 @@ function calculateIcpScore(vertical: string, estimatedSize: number): number {
   return Math.min(100, Math.round((raw / 80) * 100));
 }
 
-const conferences = [
+const conferences: Array<{
+  name: string; date: Date; endDate: Date; location: string;
+  city: string; country: string; vertical: Vertical;
+  estimatedSize: number; website: string; description: string;
+}> = [
   {
     name: "Money20/20 Europe",
     date: new Date("2026-06-09"),
@@ -29,7 +33,7 @@ const conferences = [
     location: "RAI Amsterdam, Netherlands",
     city: "Amsterdam",
     country: "Netherlands",
-    vertical: "PAYMENTS",
+    vertical: Vertical.PAYMENTS,
     estimatedSize: 8000,
     website: "https://europe.money2020.com",
     description: "Europe's largest fintech & payments event. Key players in cross-border payments, banking, and FX gather here.",
@@ -41,7 +45,7 @@ const conferences = [
     location: "The Venetian, Las Vegas, USA",
     city: "Las Vegas",
     country: "USA",
-    vertical: "PAYMENTS",
+    vertical: Vertical.PAYMENTS,
     estimatedSize: 13000,
     website: "https://us.money2020.com",
     description: "The world's biggest payments and fintech conference. Must-attend for Grain's US expansion.",
@@ -53,7 +57,7 @@ const conferences = [
     location: "Singapore Expo",
     city: "Singapore",
     country: "Singapore",
-    vertical: "FINTECH",
+    vertical: Vertical.FINTECH,
     estimatedSize: 62000,
     website: "https://www.fintechfestival.sg",
     description: "The world's largest fintech festival. Strong APAC presence with FX and cross-border focus.",
@@ -65,7 +69,7 @@ const conferences = [
     location: "ExCeL London, UK",
     city: "London",
     country: "UK",
-    vertical: "FINTECH",
+    vertical: Vertical.FINTECH,
     estimatedSize: 4000,
     website: "https://www.fintechconnect.com",
     description: "Leading European fintech conference focused on payments innovation and digital banking.",
@@ -77,7 +81,7 @@ const conferences = [
     location: "Altice Arena, Lisbon, Portugal",
     city: "Lisbon",
     country: "Portugal",
-    vertical: "SAAS",
+    vertical: Vertical.SAAS,
     estimatedSize: 70000,
     website: "https://websummit.com",
     description: "Massive tech conference. Good for networking with SaaS platforms that have FX exposure.",
@@ -89,7 +93,7 @@ const conferences = [
     location: "Messe Berlin, Germany",
     city: "Berlin",
     country: "Germany",
-    vertical: "TRAVEL",
+    vertical: Vertical.TRAVEL,
     estimatedSize: 26000,
     website: "https://www.itb.com",
     description: "World's leading travel trade show. Travel wholesalers and OTAs with cross-border payment needs.",
@@ -101,7 +105,7 @@ const conferences = [
     location: "InterContinental O2, London, UK",
     city: "London",
     country: "UK",
-    vertical: "FINTECH",
+    vertical: Vertical.FINTECH,
     estimatedSize: 2000,
     website: "https://informaconnect.com/finovateeurope",
     description: "Demo-focused fintech event. Ideal for spotting emerging payment platforms and treasury solutions.",
@@ -125,7 +129,7 @@ const conferences = [
     location: "JW Marriott, Phoenix, USA",
     city: "Phoenix",
     country: "USA",
-    vertical: "TRAVEL",
+    vertical: Vertical.TRAVEL,
     estimatedSize: 3500,
     website: "https://www.phocuswrightconference.com",
     description: "Top travel technology conference. Connects travel platforms with payment and FX solutions.",
@@ -137,7 +141,7 @@ const conferences = [
     location: "Bay Area, San Francisco, USA",
     city: "San Francisco",
     country: "USA",
-    vertical: "SAAS",
+    vertical: Vertical.SAAS,
     estimatedSize: 12000,
     website: "https://www.saastrannual.com",
     description: "Largest SaaS conference globally. Great for meeting SaaS platforms expanding internationally with FX needs.",
@@ -169,8 +173,8 @@ async function main() {
       currentRole: "VP of Partnerships",
       email: "david.chen@payflow.io",
       phone: "+44 7700 900123",
-      lifecycleStage: "PROSPECT",
-      previousCompanies: JSON.stringify(["TransferHub Inc."]),
+      lifecycleStage: LifecycleStage.PROSPECT,
+      previousCompanies: ["TransferHub Inc."],
     },
   });
 
@@ -181,7 +185,7 @@ async function main() {
       currentRole: "Head of Treasury",
       email: "s.martinez@travelpay.com",
       phone: "+1 555 0199",
-      lifecycleStage: "LEAD",
+      lifecycleStage: LifecycleStage.LEAD,
     },
   });
 
@@ -191,7 +195,7 @@ async function main() {
       currentCompany: "NordFX Solutions",
       currentRole: "CTO",
       email: "mobrien@nordfx.eu",
-      lifecycleStage: "TARGET",
+      lifecycleStage: LifecycleStage.TARGET,
     },
   });
 
@@ -209,7 +213,7 @@ async function main() {
       contactId: contact1.id,
       conferenceId: finovate.id,
       notes: "Met at Finovate demo booth. He was at TransferHub then, interested in our pricing model. Asked about API integration timelines. Seemed genuinely curious but said budget approval would be Q3.",
-      temperature: "COLD",
+      temperature: Temperature.COLD,
       capturedRoleAtTime: "Director of BD",
       capturedCompanyAtTime: "TransferHub Inc.",
       source: "manual",
@@ -222,7 +226,7 @@ async function main() {
       contactId: contact1.id,
       conferenceId: money20eu.id,
       notes: "Ran into David again — he moved to PayFlow as VP Partnerships! Much warmer. Remembers our conversation. Says PayFlow processes $200M/month cross-border. Wants to schedule a call with their treasury team. Exchanged LinkedIn.",
-      temperature: "WARM",
+      temperature: Temperature.WARM,
       capturedRoleAtTime: "VP of Partnerships",
       capturedCompanyAtTime: "PayFlow Technologies",
       source: "manual",
@@ -235,7 +239,7 @@ async function main() {
       contactId: contact1.id,
       conferenceId: eurofinance.id,
       notes: "David sought us out at our booth. Brought his CFO. They're actively evaluating 3 FX providers. Timeline: decision by Q4. Need localized collection accounts in EUR, GBP, USD. This is hot — schedule demo ASAP.",
-      temperature: "HOT",
+      temperature: Temperature.HOT,
       capturedRoleAtTime: "VP of Partnerships",
       capturedCompanyAtTime: "PayFlow Technologies",
       source: "manual",
@@ -249,7 +253,7 @@ async function main() {
       contactId: contact2.id,
       conferenceId: itb.id,
       notes: "Met Sarah at ITB travel networking dinner. TravelPay does B2B wholesale travel bookings across 40 countries. Currently losing 2-3% on FX spreads. Interested but said they're locked in with current provider until mid-2026.",
-      temperature: "WARM",
+      temperature: Temperature.WARM,
       capturedRoleAtTime: "Head of Treasury",
       capturedCompanyAtTime: "TravelPay Global",
       source: "manual",
@@ -262,7 +266,7 @@ async function main() {
       contactId: contact2.id,
       conferenceId: phocus.id,
       notes: "Sarah mentioned their current FX provider contract ends in January. She's been comparing alternatives. Asked specifically about our rate-lock feature for pre-booked travel. Send her a case study from a similar travel platform.",
-      temperature: "HOT",
+      temperature: Temperature.HOT,
       capturedRoleAtTime: "Head of Treasury",
       capturedCompanyAtTime: "TravelPay Global",
       source: "manual",
@@ -276,7 +280,7 @@ async function main() {
       contactId: contact3.id,
       conferenceId: finovate.id,
       notes: "Quick intro at networking break. NordFX is a Nordic payment processor, small but growing fast. Michael seemed distracted, exchanged cards. Follow up with email.",
-      temperature: "COLD",
+      temperature: Temperature.COLD,
       capturedRoleAtTime: "CTO",
       capturedCompanyAtTime: "NordFX Solutions",
       source: "ocr",

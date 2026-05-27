@@ -20,34 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Contact = {
-  id: string;
-  name: string;
-  currentCompany: string | null;
-  currentRole: string | null;
-  email: string | null;
-  phone: string | null;
-  lifecycleStage: string;
-  interactionCount: number;
-  lastTemperature: string;
-  lastConference: string | null;
-};
-
-type ContactDetail = Contact & {
-  previousCompanies: string[];
-  interactions: {
-    id: string;
-    notes: string | null;
-    temperature: string;
-    capturedRoleAtTime: string | null;
-    capturedCompanyAtTime: string | null;
-    createdAt: string;
-    conferenceName: string;
-    conferenceLocation: string;
-    conferenceVertical: string;
-  }[];
-};
+import { type Contact, type ContactDetail, TEMP_DOTS, linkedInSearchUrl } from "@/lib/types";
 
 const tempIcon: Record<string, React.ReactNode> = {
   HOT: <Flame className="w-4 h-4 text-red-500" />,
@@ -55,11 +28,7 @@ const tempIcon: Record<string, React.ReactNode> = {
   COLD: <Snowflake className="w-4 h-4 text-blue-400" />,
 };
 
-const tempDot: Record<string, string> = {
-  HOT: "bg-red-500",
-  WARM: "bg-orange-400",
-  COLD: "bg-blue-400",
-};
+const tempDot = TEMP_DOTS;
 
 export function ContactsTab() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -350,11 +319,6 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
     }
   }
 
-  function linkedInSearchUrl() {
-    const q = encodeURIComponent(`${detail.name} ${detail.currentCompany || ""}`.trim());
-    return `https://www.linkedin.com/search/results/people/?keywords=${q}`;
-  }
-
   return (
     <div className="p-4 space-y-4">
       <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -386,7 +350,7 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
 
       {/* LinkedIn connect */}
       <a
-        href={linkedInSearchUrl()}
+        href={linkedInSearchUrl(detail.name, detail.currentCompany || "")}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#0A66C2] text-white font-medium text-sm"

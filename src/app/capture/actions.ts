@@ -1,6 +1,20 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { z } from "zod";
+
+const submitLeadSchema = z.object({
+  name: z.string().min(1).max(200),
+  company: z.string().max(200).default(""),
+  role: z.string().max(200).default(""),
+  email: z.string().email().or(z.literal("")).default(""),
+  phone: z.string().max(50).default(""),
+  conferenceId: z.string().min(1),
+  notes: z.string().max(2000).default(""),
+  temperature: z.enum(["COLD", "WARM", "HOT"]).default("WARM"),
+  source: z.string().default("manual"),
+  existingContactId: z.string().optional(),
+});
 
 export async function searchContacts(query: string) {
   if (!query || query.length < 2) return [];
@@ -62,18 +76,8 @@ export async function getConferences() {
   });
 }
 
-export async function submitLead(data: {
-  name: string;
-  company: string;
-  role: string;
-  email: string;
-  phone: string;
-  conferenceId: string;
-  notes: string;
-  temperature: string;
-  source: string;
-  existingContactId?: string;
-}) {
+export async function submitLead(rawData: Record<string, unknown>) {
+  const data = submitLeadSchema.parse(rawData);
   const {
     name,
     company,
@@ -92,7 +96,7 @@ export async function submitLead(data: {
   if (existingContactId) {
     // Update existing contact if role/company changed
     const existing = await prisma.contact.findUnique({ where: { id: existingContactId } });
-    const updateData: Record<string, string> = {};
+    const updateData: Record<string, unknown> = {};
     if (company) updateData.currentCompany = company;
     if (role) updateData.currentRole = role;
     if (email) updateData.email = email;
@@ -101,11 +105,11 @@ export async function submitLead(data: {
     // Track previous company if it changed
     if (company && existing?.currentCompany && company !== existing.currentCompany) {
       const prev: string[] = existing.previousCompanies
-        ? JSON.parse(existing.previousCompanies)
+        ? Array.isArray(existing.previousCompanies) ? existing.previousCompanies as string[] : []
         : [];
       if (!prev.includes(existing.currentCompany)) {
         prev.push(existing.currentCompany);
-        updateData.previousCompanies = JSON.stringify(prev);
+        updateData.previousCompanies = prev;
       }
     }
 
@@ -123,14 +127,14 @@ export async function submitLead(data: {
 
     if (matchedContact) {
       // Update existing instead of creating duplicate
-      const updateData: Record<string, string> = {};
+      const updateData: Record<string, unknown> = {};
       if (company && company !== matchedContact.currentCompany) {
         const prev: string[] = matchedContact.previousCompanies
-          ? JSON.parse(matchedContact.previousCompanies)
+          ? Array.isArray(matchedContact.previousCompanies) ? matchedContact.previousCompanies as string[] : []
           : [];
         if (matchedContact.currentCompany && !prev.includes(matchedContact.currentCompany)) {
           prev.push(matchedContact.currentCompany);
-          updateData.previousCompanies = JSON.stringify(prev);
+          updateData.previousCompanies = prev;
         }
         updateData.currentCompany = company;
       }

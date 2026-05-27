@@ -17,16 +17,7 @@ import {
 } from "lucide-react";
 import { searchContacts, getConferences, submitLead } from "@/app/capture/actions";
 import { cn } from "@/lib/utils";
-
-type SearchResult = {
-  id: string;
-  name: string;
-  currentCompany: string | null;
-  currentRole: string | null;
-  email: string | null;
-  phone: string | null;
-  interactionCount: number;
-};
+import { type SearchResult, linkedInSearchUrl } from "@/lib/types";
 
 export function CaptureTab() {
   const [quickMode, setQuickMode] = useState(false);
@@ -214,11 +205,6 @@ export function CaptureTab() {
     }
     localStorage.setItem("grain_offline_queue", JSON.stringify(remaining));
     setPendingSync(remaining.length);
-  }
-
-  function linkedInSearchUrl(personName: string, companyName: string) {
-    const q = encodeURIComponent(`${personName} ${companyName}`.trim());
-    return `https://www.linkedin.com/search/results/people/?keywords=${q}`;
   }
 
   // Success overlay with LinkedIn connect

@@ -1,3 +1,12 @@
+-- CreateEnum
+CREATE TYPE "Vertical" AS ENUM ('FINTECH', 'PAYMENTS', 'TREASURY', 'TRAVEL', 'SAAS');
+
+-- CreateEnum
+CREATE TYPE "Temperature" AS ENUM ('COLD', 'WARM', 'HOT');
+
+-- CreateEnum
+CREATE TYPE "LifecycleStage" AS ENUM ('TARGET', 'LEAD', 'PROSPECT', 'CUSTOMER');
+
 -- CreateTable
 CREATE TABLE "Conference" (
     "id" TEXT NOT NULL,
@@ -7,7 +16,7 @@ CREATE TABLE "Conference" (
     "location" TEXT NOT NULL,
     "city" TEXT,
     "country" TEXT,
-    "vertical" TEXT NOT NULL,
+    "vertical" "Vertical" NOT NULL,
     "estimatedSize" INTEGER NOT NULL,
     "icpScore" INTEGER NOT NULL DEFAULT 0,
     "website" TEXT,
@@ -27,8 +36,8 @@ CREATE TABLE "Contact" (
     "email" TEXT,
     "phone" TEXT,
     "linkedinUrl" TEXT,
-    "lifecycleStage" TEXT NOT NULL DEFAULT 'TARGET',
-    "previousCompanies" TEXT,
+    "lifecycleStage" "LifecycleStage" NOT NULL DEFAULT 'TARGET',
+    "previousCompanies" JSONB NOT NULL DEFAULT '[]',
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -40,7 +49,7 @@ CREATE TABLE "Contact" (
 CREATE TABLE "Interaction" (
     "id" TEXT NOT NULL,
     "notes" TEXT,
-    "temperature" TEXT NOT NULL DEFAULT 'WARM',
+    "temperature" "Temperature" NOT NULL DEFAULT 'WARM',
     "capturedRoleAtTime" TEXT,
     "capturedCompanyAtTime" TEXT,
     "source" TEXT,
@@ -50,6 +59,15 @@ CREATE TABLE "Interaction" (
 
     CONSTRAINT "Interaction_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Contact_email_key" ON "Contact"("email");
+
+-- CreateIndex
+CREATE INDEX "Contact_email_idx" ON "Contact"("email");
+
+-- CreateIndex
+CREATE INDEX "Contact_currentCompany_idx" ON "Contact"("currentCompany");
 
 -- CreateIndex
 CREATE INDEX "Interaction_contactId_idx" ON "Interaction"("contactId");

@@ -8,6 +8,27 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Vertical {
+  FINTECH
+  PAYMENTS
+  TREASURY
+  TRAVEL
+  SAAS
+}
+
+enum Temperature {
+  COLD
+  WARM
+  HOT
+}
+
+enum LifecycleStage {
+  TARGET
+  LEAD
+  PROSPECT
+  CUSTOMER
+}
+
 model Conference {
   id            String        @id @default(cuid())
   name          String
@@ -16,7 +37,7 @@ model Conference {
   location      String
   city          String?
   country       String?
-  vertical      String        // FINTECH, PAYMENTS, TREASURY, TRAVEL, SAAS
+  vertical      Vertical
   estimatedSize Int
   icpScore      Int           @default(0)
   website       String?
@@ -28,34 +49,37 @@ model Conference {
 }
 
 model Contact {
-  id                String        @id @default(cuid())
+  id                String          @id @default(cuid())
   name              String
   currentCompany    String?
   currentRole       String?
-  email             String?
+  email             String?         @unique
   phone             String?
   linkedinUrl       String?
-  lifecycleStage    String        @default("TARGET") // TARGET, LEAD, PROSPECT, CUSTOMER
-  previousCompanies String?       // JSON string for tracking company history
+  lifecycleStage    LifecycleStage  @default(TARGET)
+  previousCompanies Json            @default("[]")
   notes             String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   interactions      Interaction[]
+
+  @@index([email])
+  @@index([currentCompany])
 }
 
 model Interaction {
-  id                    String      @id @default(cuid())
+  id                    String        @id @default(cuid())
   notes                 String?
-  temperature           String      @default("WARM") // COLD, WARM, HOT
+  temperature           Temperature   @default(WARM)
   capturedRoleAtTime    String?
   capturedCompanyAtTime String?
-  source                String?     // manual, ocr, offline-sync
-  createdAt             DateTime    @default(now())
+  source                String?
+  createdAt             DateTime      @default(now())
 
-  contact               Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact               Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
   contactId             String
-  conference            Conference  @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
+  conference            Conference    @relation(fields: [conferenceId], references: [id], onDelete: Cascade)
   conferenceId          String
 
   @@index([contactId])

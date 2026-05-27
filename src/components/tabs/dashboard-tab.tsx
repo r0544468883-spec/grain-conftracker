@@ -3,22 +3,7 @@
 import { useEffect, useState } from "react";
 import { Calendar, MapPin, List, LayoutGrid, ChevronLeft, ChevronRight, Users, ExternalLink, Clock, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Conference = {
-  id: string;
-  name: string;
-  date: string;
-  endDate: string | null;
-  location: string;
-  city: string | null;
-  country: string | null;
-  vertical: string;
-  estimatedSize: number;
-  icpScore: number;
-  website: string | null;
-  description: string | null;
-  interactionCount: number;
-};
+import { type Conference, VERTICAL_COLORS, VERTICAL_DOTS } from "@/lib/types";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -26,21 +11,6 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const verticalDot: Record<string, string> = {
-  FINTECH: "bg-grain-blue",
-  PAYMENTS: "bg-green-500",
-  TREASURY: "bg-purple-500",
-  TRAVEL: "bg-orange-500",
-  SAAS: "bg-grain-slate",
-};
-
-const verticalColors: Record<string, string> = {
-  FINTECH: "bg-grain-blue text-white",
-  PAYMENTS: "bg-green-500 text-white",
-  TREASURY: "bg-purple-500 text-white",
-  TRAVEL: "bg-orange-500 text-white",
-  SAAS: "bg-grain-slate text-white",
-};
 
 export function DashboardTab() {
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -280,7 +250,7 @@ export function DashboardTab() {
                           key={c.id}
                           className={cn(
                             "w-1.5 h-1.5 rounded-full",
-                            verticalDot[c.vertical] || "bg-gray-400"
+                            VERTICAL_DOTS[c.vertical] || "bg-gray-400"
                           )}
                         />
                       ))}
@@ -380,7 +350,7 @@ function ConferenceRow({
       <span
         className={cn(
           "text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0",
-          verticalColors[conference.vertical] || "bg-muted text-muted-foreground"
+          VERTICAL_COLORS[conference.vertical] || "bg-muted text-muted-foreground"
         )}
       >
         {conference.vertical}
@@ -420,7 +390,7 @@ function EventDetailCard({ conference }: { conference: Conference }) {
   return (
     <div className="rounded-xl border border-border bg-background overflow-hidden">
       {/* Color bar at top (like Google Calendar event) */}
-      <div className={cn("h-1.5", verticalDot[conference.vertical] || "bg-gray-400")} />
+      <div className={cn("h-1.5", VERTICAL_DOTS[conference.vertical] || "bg-gray-400")} />
 
       <div className="p-4 space-y-3">
         {/* Title + ICP badge */}
@@ -457,7 +427,7 @@ function EventDetailCard({ conference }: { conference: Conference }) {
 
         {/* Vertical + Score label */}
         <div className="flex items-center gap-2">
-          <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", verticalColors[conference.vertical] || "bg-muted text-muted-foreground")}>
+          <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", VERTICAL_COLORS[conference.vertical] || "bg-muted text-muted-foreground")}>
             {conference.vertical}
           </span>
           <span className="text-xs text-muted-foreground">{scoreLabel}</span>

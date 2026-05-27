@@ -37,9 +37,7 @@ export async function GET(
     interactionCount: contact._count.interactions,
     lastTemperature: contact.interactions.at(-1)?.temperature || "COLD",
     lastConference: contact.interactions.at(-1)?.conference.name || null,
-    previousCompanies: contact.previousCompanies
-      ? JSON.parse(contact.previousCompanies)
-      : [],
+    previousCompanies: Array.isArray(contact.previousCompanies) ? contact.previousCompanies : [],
     interactions: contact.interactions.map((i) => ({
       id: i.id,
       notes: i.notes,
