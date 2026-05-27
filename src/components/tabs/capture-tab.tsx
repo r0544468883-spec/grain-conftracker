@@ -125,14 +125,12 @@ export function CaptureTab() {
       if (companyLine && !company) setCompany(companyLine.replace(/[^A-Za-z0-9&().,' -]/g, "").trim());
 
       // AI Enrichment — fuzzy match + job change detection
-      const aiKey = localStorage.getItem("grain_ai_key");
-      const aiProvider = localStorage.getItem("grain_ai_provider") || "openai";
-      if (aiKey && data.text.trim().length > 10) {
+      if (data.text.trim().length > 10) {
         try {
           const enrichRes = await fetch("/api/ai-enrich", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ocrText: data.text, provider: aiProvider, apiKey: aiKey }),
+            body: JSON.stringify({ ocrText: data.text }),
           });
           const enrichData = await enrichRes.json();
           if (!enrichData.error) {

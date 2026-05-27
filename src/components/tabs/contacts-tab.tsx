@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   Brain,
   Sparkles,
-  Settings,
   Loader2,
   AlertCircle,
   Search,
@@ -279,8 +278,6 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("grain_ai_key") || "");
-  const [apiProvider, setApiProvider] = useState(() => localStorage.getItem("grain_ai_provider") || "openai");
 
   // Lead Score
   const [leadScore, setLeadScore] = useState<{ score: number; reason: string; priority: string } | null>(null);
@@ -291,16 +288,8 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
 
-  function saveApiSettings() {
-    localStorage.setItem("grain_ai_key", apiKey);
-    localStorage.setItem("grain_ai_provider", apiProvider);
-    setShowSettings(false);
-  }
 
   async function runAi() {
-    const key = localStorage.getItem("grain_ai_key");
-    const provider = localStorage.getItem("grain_ai_provider") || "openai";
-    if (!key) { setAiError("Set your API key first (tap gear icon)"); return; }
     if (detail.interactions.length === 0) { setAiError("No interactions to analyze"); return; }
 
     setAiLoading(true);
@@ -314,8 +303,6 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
         body: JSON.stringify({
           contactName: detail.name,
           interactions: detail.interactions,
-          provider,
-          apiKey: key,
         }),
       });
       const data = await res.json();
@@ -329,15 +316,13 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
   }
 
   async function runLeadScore() {
-    const key = localStorage.getItem("grain_ai_key");
-    const prov = localStorage.getItem("grain_ai_provider") || "openai";
-    if (!key) { setAiError("Set your API key first"); return; }
     setScoreLoading(true);
+    setAiError(null);
     try {
       const res = await fetch("/api/ai-lead-score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contactId: detail.id, provider: prov, apiKey: key }),
+        body: JSON.stringify({ contactId: detail.id }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -350,16 +335,14 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
   }
 
   async function runFollowUpEmail() {
-    const key = localStorage.getItem("grain_ai_key");
-    const prov = localStorage.getItem("grain_ai_provider") || "openai";
-    if (!key) { setAiError("Set your API key first"); return; }
     setEmailLoading(true);
     setFollowUpEmail(null);
+    setAiError(null);
     try {
       const res = await fetch("/api/ai-follow-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contactId: detail.id, provider: prov, apiKey: key }),
+        body: JSON.stringify({ contactId: detail.id }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -426,28 +409,11 @@ function ContactProfile({ detail, goBack }: { detail: ContactDetail; goBack: () 
             <Brain className="w-4 h-4 text-grain-blue" />
             <span className="text-sm font-medium">AI Intelligence</span>
           </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setShowSettings(!showSettings)} className="p-1.5 rounded-lg hover:bg-muted">
-              <Settings className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <button onClick={runAi} disabled={aiLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-grain-blue text-white text-xs font-medium">
-              {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-              Analyze
-            </button>
-          </div>
+          <button onClick={runAi} disabled={aiLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-grain-blue text-white text-xs font-medium">
+            {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+            Analyze
+          </button>
         </div>
-
-        {showSettings && (
-          <div className="space-y-2 pt-2 border-t border-border">
-            <div className="flex gap-2">
-              <button onClick={() => setApiProvider("openai")} className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border", apiProvider === "openai" ? "border-grain-blue bg-grain-blue/10 text-grain-blue" : "border-border text-muted-foreground")}>OpenAI</button>
-              <button onClick={() => setApiProvider("anthropic")} className={cn("flex-1 py-1.5 rounded-lg text-xs font-medium border", apiProvider === "anthropic" ? "border-grain-blue bg-grain-blue/10 text-grain-blue" : "border-border text-muted-foreground")}>Anthropic</button>
-            </div>
-            <input type="password" placeholder={apiProvider === "openai" ? "sk-..." : "sk-ant-..."} value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-            <p className="text-[10px] text-muted-foreground">Key is sent securely through our server — never stored on the server.</p>
-            <button onClick={saveApiSettings} className="w-full py-2 rounded-lg bg-grain-navy text-white text-xs font-medium">Save</button>
-          </div>
-        )}
 
         {aiError && (
           <div className="flex items-start gap-2 text-xs text-red-500 bg-red-500/10 rounded-lg p-2">

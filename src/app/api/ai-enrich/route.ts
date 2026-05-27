@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { askAI } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
-  const { ocrText, provider, apiKey } = await req.json();
+  const { ocrText } = await req.json();
 
-  if (!apiKey || !ocrText) {
-    return NextResponse.json({ error: "API key and OCR text required" }, { status: 400 });
+  if (!ocrText) {
+    return NextResponse.json({ error: "OCR text required" }, { status: 400 });
   }
 
-  // Get existing contacts for fuzzy matching
   const existingContacts = await prisma.contact.findMany({
     select: { id: true, name: true, currentCompany: true, email: true, currentRole: true },
     take: 200,
   });
 
   const existingList = existingContacts
-    .map((c) => `${c.name} | ${c.currentCompany || ""} | ${c.email || ""} | ${c.currentRole || ""}`)
+    .map((c) => `${c.id} | ${c.name} | ${c.currentCompany || ""} | ${c.email || ""} | ${c.currentRole || ""}`)
     .join("\n");
 
   const prompt = `You are an AI assistant for a CRM. Analyze this business card OCR text and:
@@ -28,7 +28,7 @@ OCR text from business card:
 ${ocrText}
 """
 
-Existing contacts in our database:
+Existing contacts in our database (format: id | name | company | email | role):
 ${existingList || "No existing contacts"}
 
 Reply in EXACTLY this JSON format (no markdown):
@@ -50,28 +50,7 @@ Reply in EXACTLY this JSON format (no markdown):
 }`;
 
   try {
-    let result: string;
-
-    if (provider === "anthropic") {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 400, messages: [{ role: "user", content: prompt }] }),
-      });
-      if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
-      const d = await res.json();
-      result = d.content[0].text;
-    } else {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 400 }),
-      });
-      if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
-      const d = await res.json();
-      result = d.choices[0].message.content;
-    }
-
+    const result = await askAI(prompt, 400);
     const cleaned = result.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return NextResponse.json(parsed);
