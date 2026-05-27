@@ -7,29 +7,28 @@ import { HelpCircle } from "lucide-react";
 
 const TOUR_SEEN_KEY = "grain_tour_seen";
 
-// Tour steps per tab
 const captureTourSteps = [
   {
     element: "[data-tour='conference-select']",
     popover: {
       title: "1. Select Your Conference",
-      description: "Choose the event you're attending right now. The system remembers your last selection so you don't have to pick it again every time.",
+      description: "Choose the event you're attending. The system remembers your last selection — no need to pick it every time.",
       side: "bottom" as const,
     },
   },
   {
     element: "[data-tour='quick-mode']",
     popover: {
-      title: "2. Quick Capture Mode ⚡",
-      description: "At a busy booth? Toggle Quick mode to show only Name + Company + Temperature. Capture a lead in 5 seconds flat — add details later.",
+      title: "2. Quick Capture Mode",
+      description: "Busy show floor? Toggle Quick mode — only Name + Company + Temperature. Capture a lead in 5 seconds, add details later.",
       side: "bottom" as const,
     },
   },
   {
     element: "[data-tour='name-search']",
     popover: {
-      title: "3. Smart Search",
-      description: "Start typing a name — if this person is already in the system from a previous conference, they'll pop up instantly. Tap to add a new interaction instead of creating a duplicate.",
+      title: "3. Smart Search + AI Matching",
+      description: "Start typing — if this person exists from a previous conference, they pop up instantly. The AI also detects name variations (Bob/Robert) and job changes automatically.",
       side: "bottom" as const,
     },
   },
@@ -37,23 +36,23 @@ const captureTourSteps = [
     element: "[data-tour='temperature']",
     popover: {
       title: "4. Rate the Lead — One Tap",
-      description: "Cold = just browsing. Warm = interested, asked questions. Hot = wants a demo, brought their boss. One tap with your thumb — no dropdowns, no typing.",
+      description: "Cold = browsing. Warm = asked questions. Hot = wants a demo. One tap with your thumb — this feeds the AI Lead Score later.",
       side: "top" as const,
     },
   },
   {
     element: "[data-tour='ocr-scan']",
     popover: {
-      title: "5. Scan a Business Card 📸",
-      description: "Take a photo of their business card — the OCR engine extracts name, company, email, and phone automatically. Saves 30 seconds per lead.",
+      title: "5. AI-Powered Business Card Scan",
+      description: "Take a photo of their card — OCR extracts the text, then AI enriches it: auto-fills name/company/email, detects duplicates, and flags job changes. Saves 30+ seconds per lead.",
       side: "top" as const,
     },
   },
   {
     element: "[data-tour='save-btn']",
     popover: {
-      title: "6. Save & Connect",
-      description: "Hit save — if you're offline (bad WiFi at the venue), the lead saves locally and syncs later. After saving, you'll see a LinkedIn Connect button to immediately send a connection request.",
+      title: "6. Save + LinkedIn Connect",
+      description: "Hit save — works offline too (syncs later). After saving, a LinkedIn Connect button opens their profile instantly. One tap to send a connection request.",
       side: "top" as const,
     },
   },
@@ -64,7 +63,7 @@ const eventsTourSteps = [
     element: "[data-tour='events-header']",
     popover: {
       title: "Conference Intelligence",
-      description: "All your target conferences, ranked by ICP fit for Grain. The higher the score, the more likely you'll find PSPs, travel platforms, and companies with FX exposure.",
+      description: "All conferences ranked by ICP fit for Grain. Higher score = more PSPs, travel platforms, and FX-exposed companies in attendance.",
       side: "bottom" as const,
     },
   },
@@ -72,15 +71,15 @@ const eventsTourSteps = [
     element: "[data-tour='view-toggle']",
     popover: {
       title: "List or Calendar View",
-      description: "Switch between a prioritized list (sorted by ICP score) and a monthly calendar view. The calendar shows colored dots on days with events — tap a day to see full event details.",
+      description: "List view: sorted by ICP score. Calendar view: monthly grid like Google Calendar — tap a day to see full event details (dates, location, audience size, description, website).",
       side: "bottom" as const,
     },
   },
   {
     element: "[data-tour='events-filter']",
     popover: {
-      title: "Filter by Vertical",
-      description: "Quickly filter by Fintech, Payments, Treasury, Travel, or SaaS. Focus on the verticals that matter most for your territory.",
+      title: "Search & Filter",
+      description: "Search by name or location. Filter by vertical (Fintech, Payments, Treasury, Travel, SaaS). Zero in on what matters for your territory.",
       side: "bottom" as const,
     },
   },
@@ -91,7 +90,7 @@ const contactsTourSteps = [
     element: "[data-tour='contacts-header']",
     popover: {
       title: "Your Contact Network",
-      description: "Everyone you've met across all conferences, in one place. Each contact shows their temperature (Hot/Warm/Cold) and how many conferences you've met them at.",
+      description: "Everyone you've met across all conferences. Each card shows temperature (Hot/Warm/Cold), lifecycle stage, and number of interactions.",
       side: "bottom" as const,
     },
   },
@@ -99,15 +98,50 @@ const contactsTourSteps = [
     element: "[data-tour='contacts-filters']",
     popover: {
       title: "Search & Filter",
-      description: "Search by name or company. Filter by temperature (show me only Hot leads) or lifecycle stage (Prospect, Lead, etc.). Find the right person in seconds.",
+      description: "Search by name or company. Filter by temperature or lifecycle stage. Find the right person in seconds, even with hundreds of contacts.",
       side: "bottom" as const,
     },
   },
   {
     element: "[data-tour='hubspot-btns']",
     popover: {
-      title: "Push to HubSpot",
-      description: "Export contacts as a CSV for manual import, or push directly to HubSpot via API. One click — your leads are in the CRM, ready for follow-up sequences.",
+      title: "HubSpot Integration",
+      description: "Two options: CSV export for manual import, or direct API push to HubSpot (creates/updates contacts automatically). One click — leads are in your CRM.",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI Features (Inside Contact Profile)",
+      description: "Tap any contact to open their profile. Inside you'll find 4 AI-powered tools that work automatically — no setup needed:",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI 1: Relationship Analyzer",
+      description: "Analyzes all interactions across conferences and generates: Relationship Arc (how it evolved), Current Status (Hot/Warm/Cold + why), and Next Step (specific action to take).",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI 2: Lead Score (0-100)",
+      description: "AI scores each lead based on: interaction frequency, temperature trends, job seniority, company-vertical fit, and buying signals in notes. Score is saved — track progress over time.",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI 3: Follow-Up Email Draft",
+      description: "One tap generates a personalized follow-up email referencing your actual conversation notes. Includes subject line and CTA. Copy and paste into Gmail or HubSpot.",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI 4: LinkedIn Connect",
+      description: "Every contact profile has a 'Find on LinkedIn' button that opens a pre-filled search. One click to send a connection request — strike while the iron is hot.",
       side: "bottom" as const,
     },
   },
@@ -118,15 +152,15 @@ const planningTourSteps = [
     element: "[data-tour='planning-header']",
     popover: {
       title: "Annual Coverage Planner",
-      description: "See your entire conference year at a glance. Months with no events are flagged as gaps — so you never miss a quarter of pipeline generation.",
+      description: "Your entire conference year at a glance. Months with no events are flagged as gaps — never miss a quarter of pipeline generation.",
       side: "bottom" as const,
     },
   },
   {
     element: "[data-tour='trip-clusters']",
     popover: {
-      title: "Trip Cluster Detection ✈️",
-      description: "When two conferences happen in the same region within 14 days, the system flags it as a trip cluster opportunity. Combine trips = save $2-5K in flights per cluster.",
+      title: "Trip Cluster Detection",
+      description: "When two conferences happen in the same region within 14 days, the system spots it. Combine trips = save $2-5K in flights per cluster.",
       side: "bottom" as const,
     },
   },
@@ -136,13 +170,12 @@ export function TourGuide({ activeTab }: { activeTab: string }) {
   const [tourReady, setTourReady] = useState(false);
 
   useEffect(() => {
-    // Wait for DOM to render
     const timer = setTimeout(() => setTourReady(true), 500);
     return () => clearTimeout(timer);
   }, [activeTab]);
 
   function startTour() {
-    let steps: typeof captureTourSteps = [];
+    let steps: Array<{ element?: string; popover: { title: string; description: string; side: "top" | "bottom" | "left" | "right" } }> = [];
 
     switch (activeTab) {
       case "capture":
@@ -159,9 +192,9 @@ export function TourGuide({ activeTab }: { activeTab: string }) {
         break;
     }
 
-    // Filter to only steps whose elements exist in DOM
+    // Filter: steps with element must exist in DOM, steps without element always show
     const validSteps = steps.filter(
-      (s) => document.querySelector(s.element) !== null
+      (s) => !("element" in s && s.element) || document.querySelector(s.element as string) !== null
     );
 
     if (validSteps.length === 0) return;
@@ -173,8 +206,8 @@ export function TourGuide({ activeTab }: { activeTab: string }) {
       stagePadding: 8,
       stageRadius: 12,
       popoverClass: "grain-tour-popover",
-      nextBtnText: "Next →",
-      prevBtnText: "← Back",
+      nextBtnText: "Next ->",
+      prevBtnText: "<- Back",
       doneBtnText: "Got it!",
       steps: validSteps,
       onDestroyStarted: () => {
@@ -205,6 +238,7 @@ export function TourGuide({ activeTab }: { activeTab: string }) {
       onClick={startTour}
       className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
       title="Take a tour"
+      aria-label="Start guided tour"
     >
       <HelpCircle className="w-4 h-4 text-white/70" />
     </button>
