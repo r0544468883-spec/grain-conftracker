@@ -42,11 +42,6 @@ export function ContactsTab() {
   // HubSpot push state
   const [hubspotPushing, setHubspotPushing] = useState(false);
   const [hubspotResult, setHubspotResult] = useState<{ created: number; updated: number; errors: number } | null>(null);
-  const [showHubspotSettings, setShowHubspotSettings] = useState(false);
-  const [hubspotKey, setHubspotKey] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("grain_hubspot_key") || "";
-    return "";
-  });
 
   const [error, setError] = useState(false);
 
@@ -101,9 +96,6 @@ export function ContactsTab() {
   }
 
   async function pushToHubspot() {
-    const key = localStorage.getItem("grain_hubspot_key");
-    if (!key) { setShowHubspotSettings(true); return; }
-
     const confirmed = window.confirm(`Push ${filtered.length} contacts to HubSpot?`);
     if (!confirmed) return;
 
@@ -113,7 +105,7 @@ export function ContactsTab() {
       const res = await fetch("/api/hubspot/push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contacts: filtered, hubspotApiKey: key }),
+        body: JSON.stringify({ contacts: filtered }),
       });
       const data = await res.json();
       if (data.summary) setHubspotResult(data.summary);
@@ -165,30 +157,6 @@ export function ContactsTab() {
           </button>
         </div>
       </div>
-
-      {/* HubSpot settings */}
-      {showHubspotSettings && (
-        <div className="rounded-lg border border-[#ff7a59]/20 bg-[#ff7a59]/5 p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">HubSpot API Key</span>
-            <button onClick={() => setShowHubspotSettings(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
-          </div>
-          <input
-            type="password"
-            placeholder="pat-na1-..."
-            value={hubspotKey}
-            onChange={(e) => setHubspotKey(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-          />
-          <p className="text-[10px] text-muted-foreground">Get your key from HubSpot Settings → Private Apps</p>
-          <button
-            onClick={() => { localStorage.setItem("grain_hubspot_key", hubspotKey); setShowHubspotSettings(false); }}
-            className="w-full py-2 rounded-lg bg-[#ff7a59] text-white text-xs font-medium"
-          >
-            Save & Connect
-          </button>
-        </div>
-      )}
 
       {/* HubSpot push result */}
       {hubspotResult && (

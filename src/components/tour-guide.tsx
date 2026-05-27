@@ -166,6 +166,23 @@ const planningTourSteps = [
   },
 ];
 
+const meetingsTourSteps = [
+  {
+    popover: {
+      title: "Meeting Prep Center",
+      description: "Schedule meetings with contacts at conferences. Before each meeting, tap 'Generate AI Briefing' for a 30-second prep: who they are, what matters, how to open, and what to avoid.",
+      side: "bottom" as const,
+    },
+  },
+  {
+    popover: {
+      title: "AI Pre-Meeting Briefing",
+      description: "The AI analyzes all past interactions with this contact and generates: CONTEXT (relationship history), KEY INTEL (what matters), APPROACH (how to open), AVOID (what not to say). Read it while walking to the meeting.",
+      side: "bottom" as const,
+    },
+  },
+];
+
 export function TourGuide({ activeTab }: { activeTab: string }) {
   const [tourReady, setTourReady] = useState(false);
 
@@ -183,6 +200,9 @@ export function TourGuide({ activeTab }: { activeTab: string }) {
         break;
       case "dashboard":
         steps = eventsTourSteps;
+        break;
+      case "meetings":
+        steps = meetingsTourSteps;
         break;
       case "contacts":
         steps = contactsTourSteps;

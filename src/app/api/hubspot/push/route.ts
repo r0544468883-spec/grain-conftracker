@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { contacts, hubspotApiKey } = await req.json();
+  const { contacts } = await req.json();
 
+  const hubspotApiKey = process.env.HUBSPOT_API_KEY;
   if (!hubspotApiKey) {
-    return NextResponse.json({ error: "HubSpot API key required" }, { status: 400 });
+    return NextResponse.json({ error: "HubSpot is not configured. Contact your administrator." }, { status: 400 });
   }
 
   if (!contacts || contacts.length === 0) {
@@ -30,7 +31,6 @@ export async function POST(req: NextRequest) {
     if (contact.phone) properties.phone = contact.phone;
 
     try {
-      // Try to create contact
       const createRes = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
         method: "POST",
         headers: {
@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
       if (createRes.ok) {
         results.push({ name: contact.name, status: "created" });
       } else if (createRes.status === 409) {
-        // Contact exists — update instead
         const err = await createRes.json();
         const existingId = err.message?.match(/ID: (\d+)/)?.[1];
 
@@ -75,8 +74,9 @@ export async function POST(req: NextRequest) {
           error: errBody.message || `HTTP ${createRes.status}`,
         });
       }
-    } catch (e: any) {
-      results.push({ name: contact.name, status: "error", error: e.message });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      results.push({ name: contact.name, status: "error", error: msg });
     }
   }
 

@@ -1,20 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, LayoutGrid, Users, CalendarRange } from "lucide-react";
+import { UserPlus, LayoutGrid, Users, CalendarRange, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CaptureTab } from "./tabs/capture-tab";
 import { DashboardTab } from "./tabs/dashboard-tab";
 import { ContactsTab } from "./tabs/contacts-tab";
 import { PlanningTab } from "./tabs/planning-tab";
+import { MeetingsTab } from "./tabs/meetings-tab";
 import { MobileFrame } from "./mobile-frame";
 import { TourGuide } from "./tour-guide";
 
 const tabs = [
   { id: "capture", label: "Capture", icon: UserPlus },
   { id: "dashboard", label: "Events", icon: LayoutGrid },
+  { id: "meetings", label: "Meetings", icon: CalendarClock },
   { id: "contacts", label: "Contacts", icon: Users },
-  { id: "planning", label: "Planning", icon: CalendarRange },
+  { id: "planning", label: "Plan", icon: CalendarRange },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -43,6 +45,7 @@ export function AppShell() {
         <div className="flex-1 overflow-y-auto">
           <div className={activeTab === "capture" ? "" : "hidden"}><CaptureTab /></div>
           <div className={activeTab === "dashboard" ? "" : "hidden"}><DashboardTab /></div>
+          <div className={activeTab === "meetings" ? "" : "hidden"}><MeetingsTab /></div>
           <div className={activeTab === "contacts" ? "" : "hidden"}><ContactsTab /></div>
           <div className={activeTab === "planning" ? "" : "hidden"}><PlanningTab /></div>
         </div>
@@ -56,7 +59,7 @@ export function AppShell() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex-1 flex flex-col items-center gap-1 py-2 text-[11px] transition-colors",
+                  "flex-1 flex flex-col items-center gap-1 py-2 text-[10px] transition-colors",
                   isActive
                     ? "text-grain-blue"
                     : "text-muted-foreground"
