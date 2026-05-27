@@ -20,7 +20,7 @@ import { searchContacts, getConferences, submitLead } from "@/app/capture/action
 import { cn } from "@/lib/utils";
 import { type SearchResult, linkedInSearchUrl } from "@/lib/types";
 
-export function CaptureTab() {
+export function CaptureTab({ onViewContact }: { onViewContact?: (id: string) => void }) {
   const [quickMode, setQuickMode] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
@@ -351,9 +351,19 @@ export function CaptureTab() {
               {selectedContact.currentCompany} &middot; {selectedContact.interactionCount} prior
             </p>
           </div>
-          <button onClick={clearForm} className="text-xs text-grain-blue">
-            Clear
-          </button>
+          <div className="flex items-center gap-2">
+            {onViewContact && (
+              <button
+                onClick={() => onViewContact(selectedContact.id)}
+                className="text-xs text-white bg-grain-blue px-2 py-1 rounded-md"
+              >
+                View Profile
+              </button>
+            )}
+            <button onClick={clearForm} className="text-xs text-grain-blue">
+              Clear
+            </button>
+          </div>
         </div>
       )}
 

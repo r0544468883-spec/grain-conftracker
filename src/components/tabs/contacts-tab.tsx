@@ -29,7 +29,7 @@ const tempIcon: Record<string, React.ReactNode> = {
 
 const tempDot = TEMP_DOTS;
 
-export function ContactsTab() {
+export function ContactsTab({ openContactId, onContactOpened }: { openContactId?: string | null; onContactOpened?: () => void }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -55,6 +55,14 @@ export function ContactsTab() {
   }
 
   useEffect(() => { loadContacts(); }, []);
+
+  // Auto-open contact from external navigation (e.g. Capture tab "View Profile")
+  useEffect(() => {
+    if (openContactId) {
+      openContact(openContactId);
+      onContactOpened?.();
+    }
+  }, [openContactId]);
 
   // Filtered contacts
   const filtered = contacts.filter((c) => {

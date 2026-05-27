@@ -168,10 +168,10 @@ async function main() {
   // Seed sample contacts
   const contact1 = await prisma.contact.create({
     data: {
-      name: "David Chen",
+      name: "Tim Whatley",
       currentCompany: "PayFlow Technologies",
       currentRole: "VP of Partnerships",
-      email: "david.chen@payflow.io",
+      email: "tim.whatley@payflow.io",
       phone: "+44 7700 900123",
       lifecycleStage: LifecycleStage.PROSPECT,
       previousCompanies: ["TransferHub Inc."],
@@ -207,7 +207,7 @@ async function main() {
   const itb = allConfs.find(c => c.name.includes("ITB"))!;
   const phocus = allConfs.find(c => c.name.includes("Phocuswright"))!;
 
-  // David Chen — met at 3 conferences (warming relationship)
+  // Tim Whatley — met at 3 conferences (warming relationship)
   await prisma.interaction.create({
     data: {
       contactId: contact1.id,

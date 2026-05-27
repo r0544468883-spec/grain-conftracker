@@ -23,6 +23,12 @@ type TabId = (typeof tabs)[number]["id"];
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>("capture");
+  const [viewContactId, setViewContactId] = useState<string | null>(null);
+
+  function navigateToContact(contactId: string) {
+    setViewContactId(contactId);
+    setActiveTab("contacts");
+  }
 
   return (
     <MobileFrame>
@@ -43,10 +49,10 @@ export function AppShell() {
 
         {/* Content — tabs stay mounted to preserve form state */}
         <div className="flex-1 overflow-y-auto">
-          <div className={activeTab === "capture" ? "" : "hidden"}><CaptureTab /></div>
+          <div className={activeTab === "capture" ? "" : "hidden"}><CaptureTab onViewContact={navigateToContact} /></div>
           <div className={activeTab === "dashboard" ? "" : "hidden"}><DashboardTab /></div>
           <div className={activeTab === "meetings" ? "" : "hidden"}><MeetingsTab /></div>
-          <div className={activeTab === "contacts" ? "" : "hidden"}><ContactsTab /></div>
+          <div className={activeTab === "contacts" ? "" : "hidden"}><ContactsTab openContactId={viewContactId} onContactOpened={() => setViewContactId(null)} /></div>
           <div className={activeTab === "planning" ? "" : "hidden"}><PlanningTab /></div>
         </div>
 
