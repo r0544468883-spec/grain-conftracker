@@ -17,6 +17,7 @@ import {
   Upload,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Contact, type ContactDetail, TEMP_DOTS, linkedInSearchUrl } from "@/lib/types";
@@ -39,9 +40,11 @@ export function ContactsTab({ openContactId, onContactOpened }: { openContactId?
   const [filterTemp, setFilterTemp] = useState<string>("");
   const [filterStage, setFilterStage] = useState<string>("");
 
-  // HubSpot push state
+  // HubSpot state
   const [hubspotPushing, setHubspotPushing] = useState(false);
   const [hubspotResult, setHubspotResult] = useState<{ created: number; updated: number; errors: number } | null>(null);
+  const [hubspotStatus, setHubspotStatus] = useState<{ connected: boolean; message: string } | null>(null);
+  const [hubspotChecking, setHubspotChecking] = useState(false);
 
   const [error, setError] = useState(false);
 
@@ -54,7 +57,15 @@ export function ContactsTab({ openContactId, onContactOpened }: { openContactId?
       .catch(() => { setError(true); setLoading(false); });
   }
 
-  useEffect(() => { loadContacts(); }, []);
+  useEffect(() => { loadContacts(); checkHubspot(); }, []);
+
+  function checkHubspot() {
+    setHubspotChecking(true);
+    fetch("/api/hubspot/status")
+      .then((r) => r.json())
+      .then((data) => { setHubspotStatus(data); setHubspotChecking(false); })
+      .catch(() => { setHubspotStatus({ connected: false, message: "Check failed" }); setHubspotChecking(false); });
+  }
 
   // Auto-open contact from external navigation (e.g. Capture tab "View Profile")
   useEffect(() => {
@@ -165,6 +176,28 @@ export function ContactsTab({ openContactId, onContactOpened }: { openContactId?
           </button>
         </div>
       </div>
+
+      {/* HubSpot connection status */}
+      {hubspotStatus && (
+        <div className={cn(
+          "rounded-lg border p-2 flex items-center justify-between text-xs",
+          hubspotStatus.connected ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"
+        )}>
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full", hubspotStatus.connected ? "bg-green-500" : "bg-red-500")} />
+            <span className={hubspotStatus.connected ? "text-green-600" : "text-red-500"}>
+              {hubspotStatus.message}
+            </span>
+          </div>
+          <button
+            onClick={checkHubspot}
+            disabled={hubspotChecking}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className={cn("w-3 h-3", hubspotChecking && "animate-spin")} />
+          </button>
+        </div>
+      )}
 
       {/* HubSpot push result */}
       {hubspotResult && (
