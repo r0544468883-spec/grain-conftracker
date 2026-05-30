@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Map our lifecycle stages to HubSpot's valid stages
+function mapLifecycleStage(stage: string | undefined): string {
+  const map: Record<string, string> = {
+    TARGET: "subscriber",
+    LEAD: "lead",
+    PROSPECT: "salesqualifiedlead",
+    CUSTOMER: "customer",
+  };
+  return map[stage?.toUpperCase() || ""] || "lead";
+}
+
 export async function POST(req: NextRequest) {
   const { contacts } = await req.json();
 
@@ -24,7 +35,7 @@ export async function POST(req: NextRequest) {
       lastname: lastName,
       company: contact.currentCompany || "",
       jobtitle: contact.currentRole || "",
-      lifecyclestage: contact.lifecycleStage?.toLowerCase() || "lead",
+      lifecyclestage: mapLifecycleStage(contact.lifecycleStage),
     };
 
     if (contact.email) properties.email = contact.email;
